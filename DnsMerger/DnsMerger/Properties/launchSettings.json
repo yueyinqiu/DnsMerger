@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DnsMerger": {
+      "commandName": "Project",
+      "commandLineArgs": "config.json"
+    }
+  }
+}
