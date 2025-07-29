@@ -1,5 +1,4 @@
-﻿using DNS.Protocol;
-using DNS.Server;
+﻿using DNS.Server;
 using DnsMerger;
 using System.Net;
 using System.Text.Json;
@@ -30,26 +29,26 @@ if (file.Exists)
 if (configuration is null)
 {
     configuration = new Configuration(
-        "0.0.0.0:53", ["8.8.8.8:53", "114.114.114.114:53"], TimeSpan.FromSeconds(1));
+        "0.0.0.0:53", ["8.8.8.8:53", "114.114.114.114:53"], TimeSpan.FromSeconds(1), default);
     using var stream = file.Open(FileMode.CreateNew, FileAccess.Write);
     await JsonSerializer.SerializeAsync(stream, configuration,
         ConfigurationSerializerContext.Default.Configuration);
     Console.WriteLine($"Configuration Written To {file.FullName}");
 }
 
-if (configuration.EndPoint is not null && 
-    IPEndPoint.TryParse(configuration.EndPoint, out var endpoint))
+if (configuration.ListeningEndPoint is not null && 
+    IPEndPoint.TryParse(configuration.ListeningEndPoint, out var endpoint))
 {
     Console.WriteLine($"Will Listen On: {endpoint}");
 }
 else
 {
-    Console.WriteLine($"Cannot Resolve Endpoint '{configuration.EndPoint}'");
+    Console.WriteLine($"Cannot Resolve Listening End Point '{configuration.ListeningEndPoint}'");
     return;
 }
 
 var servers = new List<IPEndPoint>();
-foreach(var server in configuration.Servers ?? [])
+foreach(var server in configuration.ServersToMerge ?? [])
 {
     if (server is not null &&
         IPEndPoint.TryParse(server, out var serverEndPoint))
@@ -58,13 +57,13 @@ foreach(var server in configuration.Servers ?? [])
     }
     else
     {
-        Console.WriteLine($"Cannot Resolve Server '{server}'");
+        Console.WriteLine($"Cannot Resolve Server To Merge '{server}'");
         return;
     }
 }
 if (servers.Count is 0)
 {
-    Console.WriteLine($"No Server Found");
+    Console.WriteLine($"No Server Is Found To Merge");
     return;
 }
 Console.WriteLine($"Servers To Merge: {string.Join(", ", servers)}");
@@ -78,5 +77,4 @@ dnsServer.Errored += (sender, e) =>
     Console.WriteLine($"{e.Exception}");
     Console.WriteLine();
 };
-
 await dnsServer.Listen(endpoint);

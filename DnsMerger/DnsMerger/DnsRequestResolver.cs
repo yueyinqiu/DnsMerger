@@ -1,5 +1,4 @@
-﻿
-using DNS.Client;
+﻿using DNS.Client;
 using DNS.Client.RequestResolver;
 using DNS.Protocol;
 using System.Net;
@@ -29,7 +28,10 @@ public sealed class DnsRequestResolver(IEnumerable<IPEndPoint> servers, TimeSpan
         await token.CancelAsync();
 
         int index = tasks.FindIndex(x => x.IsCompletedSuccessfully);
-        var result = index is -1 ? Response.FromRequest(request) : tasks[index].Result;
+        var result = index is -1 ? Response.FromRequest(request) : new Response(tasks[index].Result);
+
+        for (int i = 0; i < result.AnswerRecords.Count; i++)
+            result.AnswerRecords[i] = result.AnswerRecords[i].WithShorterTtl(default);
 
         var builder = new StringBuilder();
         _ = builder.AppendLine($"Request:");
