@@ -26,6 +26,8 @@ if (file.Exists)
     {
         configuration = await JsonSerializer.DeserializeAsync(stream,
             ConfigurationSerializerContext.Default.Configuration);
+        if (configuration is null)
+            throw new JsonException();
     }
     catch (Exception ex)
     {
@@ -82,6 +84,7 @@ if(configuration.Timeout.Ticks / TimeSpan.TicksPerMillisecond > int.MaxValue)
     return;
 }
 Console.WriteLine($"Timeout: {configuration.Timeout}");
+Console.WriteLine($"Time To Live: {configuration.TimeToLive}");
 
 var resolver = new DnsRequestResolver(servers, configuration.Timeout, configuration.TimeToLive);
 DnsServer dnsServer = new DnsServer(resolver);
