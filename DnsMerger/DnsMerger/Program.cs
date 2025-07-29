@@ -2,6 +2,7 @@
 using DnsMerger;
 using System.Net;
 using System.Text.Json;
+using System.Threading;
 
 if (args.Length is 0)
     Console.WriteLine("Please provide the path of configuration file.");
@@ -13,7 +14,7 @@ try
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"Failed to load the configuration file: {ex}");
+    Console.WriteLine($"Failed to load the configuration file '{args[0]}': {ex}");
     return;
 }
 
@@ -21,15 +22,22 @@ Configuration? configuration = null;
 if (file.Exists)
 {
     using var stream = file.Open(FileMode.Open, FileAccess.Read);
-    configuration = await JsonSerializer.DeserializeAsync(stream, 
-        ConfigurationSerializerContext.Default.Configuration);
+    try
+    {
+        configuration = await JsonSerializer.DeserializeAsync(stream,
+            ConfigurationSerializerContext.Default.Configuration);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Failed to load the configuration file '{file.FullName}': {ex}");
+    }
     Console.WriteLine($"Configuration Read From {file.FullName}");
 }
 
 if (configuration is null)
 {
     configuration = new Configuration(
-        "0.0.0.0:53", ["8.8.8.8:53", "114.114.114.114:53"], TimeSpan.FromSeconds(1), default);
+        "0.0.0.0:53", ["8.8.8.8:53", "114.114.114.114:53"], TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     using var stream = file.Open(FileMode.CreateNew, FileAccess.Write);
     await JsonSerializer.SerializeAsync(stream, configuration,
         ConfigurationSerializerContext.Default.Configuration);
@@ -67,9 +75,15 @@ if (servers.Count is 0)
     return;
 }
 Console.WriteLine($"Servers To Merge: {string.Join(", ", servers)}");
+
+if(configuration.Timeout.Ticks / TimeSpan.TicksPerMillisecond > int.MaxValue)
+{
+    Console.WriteLine($"Timeout Is Too Large");
+    return;
+}
 Console.WriteLine($"Timeout: {configuration.Timeout}");
 
-var resolver = new DnsRequestResolver(servers, configuration.Timeout);
+var resolver = new DnsRequestResolver(servers, configuration.Timeout, configuration.TimeToLive);
 DnsServer dnsServer = new DnsServer(resolver);
 dnsServer.Errored += (sender, e) =>
 {

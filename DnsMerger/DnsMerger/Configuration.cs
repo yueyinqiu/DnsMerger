@@ -1,7 +1,7 @@
 ﻿namespace DnsMerger;
 
 public sealed record Configuration(
-    string? ListeningEndPoint, 
-    IReadOnlyList<string?>? ServersToMerge, 
+    string ListeningEndPoint, 
+    IReadOnlyList<string> ServersToMerge, 
     TimeSpan Timeout,
     TimeSpan TimeToLive);
